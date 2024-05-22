@@ -1,12 +1,13 @@
 package com.lcaohoanq;
 
+import com.lcaohoanq.view.AppView;
 import java.awt.EventQueue;
 
 public class Main {
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
-            new GitCloneApp().setVisible(true);
+            new AppView().setVisible(true);
         });
     }
 

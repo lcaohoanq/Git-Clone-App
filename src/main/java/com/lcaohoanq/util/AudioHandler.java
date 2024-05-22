@@ -1,4 +1,4 @@
-package com.lcaohoanq;
+package com.lcaohoanq.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

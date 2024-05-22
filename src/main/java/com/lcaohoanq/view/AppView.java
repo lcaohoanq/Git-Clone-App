@@ -1,35 +1,32 @@
-package com.lcaohoanq;
+package com.lcaohoanq.view;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
+import com.lcaohoanq.constant.Notification;
+import com.lcaohoanq.constant.Path;
+import com.lcaohoanq.constant.Size;
+import com.lcaohoanq.util.AudioHandler;
+import com.lcaohoanq.controller.AppController;
 import java.net.URL;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import java.io.File;
+import com.lcaohoanq.constant.Regex;
 
-public class GitCloneApp extends JFrame implements ActionListener, KeyListener {
+public class AppView extends JFrame {
 
     private static final AudioHandler audioHandler = new AudioHandler();
-    private final URL iconURL = GitCloneApp.class.getResource("/logo.png");
+    private final URL iconURL = AppView.class.getResource(Path.IMAGE_LOGO);
     public Image icon = Toolkit.getDefaultToolkit().createImage(iconURL);
     private final JPanel jPanel = new JPanel();
     private final JTextField jTextField_RepoUrl = new JTextField();
     private final JButton jButton_CloneButton = new JButton("Clone");
     private final JTextArea jTextArea_StatusArea = new JTextArea();
     private JFileChooser jFileChooser;
-    private Timer timer;
-    private String repoUrl;
-    private String folderRepoName;
-    private File selectedDirectory;
+    private AppController appController = new AppController(this);
 
-    public GitCloneApp() {
+    public AppView() {
         setTitle("Git Clone App");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(600, 250);
+        setSize(Size.FRAME_WIDTH, Size.FRAME_HEIGHT);
         setLayout(new BorderLayout());
         setLocationRelativeTo(null);
         setIconImage(icon);
@@ -42,10 +39,10 @@ public class GitCloneApp extends JFrame implements ActionListener, KeyListener {
         jButton_CloneButton.setBackground(Color.decode("#F27BBD"));
         jButton_CloneButton.setForeground(Color.WHITE);
         jButton_CloneButton.setFont(new Font("Arial", Font.BOLD, 14));
-        jButton_CloneButton.addActionListener(this);
+        jButton_CloneButton.addActionListener(appController);
 
         jTextField_RepoUrl.setFont(new Font("Roboto", Font.PLAIN, 14));
-        jTextField_RepoUrl.addKeyListener(this);
+        jTextField_RepoUrl.addKeyListener(appController);
 
         jTextArea_StatusArea.setBackground(Color.decode("#121212"));
         jTextArea_StatusArea.setForeground(Color.decode("#16FF00"));
@@ -65,45 +62,33 @@ public class GitCloneApp extends JFrame implements ActionListener, KeyListener {
         jFileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     }
 
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        repoUrl = jTextField_RepoUrl.getText();
-        if (!validateRepoUrl(repoUrl)) {
-            return;
-        }
-
-        selectedDirectory = selectDirectory();
-        if (selectedDirectory == null) {
-            return;
-        }
-
-        folderRepoName = repoUrl.substring(repoUrl.lastIndexOf("/") + 1);
-
-        timer = startLoadingEffect();
-
-        new Thread(() -> {
-            cloneRepository(repoUrl, folderRepoName);
-        }).start();
-    }
-
-    private boolean validateRepoUrl(String repoUrl) {
+    public boolean validateRepoUrl(String repoUrl) {
         if (repoUrl.isEmpty()) {
-            audioHandler.playAudio("/error.wav");
-            JOptionPane.showMessageDialog(null, "Please enter a repository URL");
+            audioHandler.playAudio(Path.AUDIO_ERROR);
+            JOptionPane.showMessageDialog(null, Notification.PLEASE_ENTER_A_REPOSITORY_URL);
             return false;
         } else {
             //check if the url is match with github url
-            if (repoUrl.matches("^https:\\/\\/github\\.com\\/[\\w-]+\\/[\\w(\\-|\\s|\\_|.)]+$")) {
+            if (isValidGithubUrl(repoUrl)) {
                 return true;
             }else{
-                audioHandler.playAudio("/error.wav");
-                JOptionPane.showMessageDialog(null, "Please enter a valid GitHub repository URL");
+                audioHandler.playAudio(Path.AUDIO_ERROR);
+                JOptionPane.showMessageDialog(null, Notification.PLEASE_ENTER_A_VALID_REPOSITORY_URL);
                 return false;
             }
         }
     }
 
-    private File selectDirectory() {
+    private boolean isValidGithubUrl(String repoUrl) {
+        return repoUrl.matches(Regex.GITHUB_HTTP_URL) || repoUrl.matches(Regex.GITHUB_SSH_URL);
+    }
+
+    public File selectDirectory() {
+        UIManager.put("OptionPane.background", Color.decode("#f1f1f1"));
+        UIManager.put("Panel.background",  Color.decode("#f1f1f1"));
+        UIManager.put("Button.background", Color.decode("#90D26D"));
+        UIManager.put("Button.foreground", Color.WHITE);
+
         Object[] customizeOptions = {"Select", "Desktop"};
         int userChoice = JOptionPane.showOptionDialog(null,
             "Choose the selected directory or placed in your Desktop?", "Confirm",
@@ -114,34 +99,14 @@ public class GitCloneApp extends JFrame implements ActionListener, KeyListener {
             if (option == JFileChooser.APPROVE_OPTION) {
                 return jFileChooser.getSelectedFile();
             }
-        } else {
+        } else if (userChoice == JOptionPane.NO_OPTION) {
             // Default to user's Desktop if no directory is selected
             return new File(System.getProperty("user.home"), "Desktop");
         }
         return null;
     }
 
-    private void cloneRepository(String repoUrl, String folderRepoName) {
-        try {
-            // Create a unique directory for each cloned repository
-            File repoDir = new File(selectedDirectory, folderRepoName);
-            Git.cloneRepository()
-                .setURI(repoUrl)
-                .setDirectory(repoDir)
-                .call();
-            stopLoadingEffect(timer);
-            audioHandler.playAudio("/ding.wav");
-            JOptionPane.showMessageDialog(null, "Repository cloned successfully!");
-        } catch (GitAPIException ex) {
-            jTextArea_StatusArea.append("Error: " + ex.getMessage() + "\n");
-            audioHandler.playAudio("/error.wav");
-        } catch (Exception ex) {
-            jTextArea_StatusArea.append("Unexpected error: " + ex.getMessage() + "\n");
-            audioHandler.playAudio("/error.wav");
-        }
-    }
-
-    private Timer startLoadingEffect() {
+    public Timer startLoadingEffect() {
         jTextArea_StatusArea.setText("Cloning repository");
         jButton_CloneButton.setEnabled(false); // Disable the clone button during cloning
 
@@ -153,27 +118,18 @@ public class GitCloneApp extends JFrame implements ActionListener, KeyListener {
         return timer;
     }
 
-    private void stopLoadingEffect(Timer timer) {
+    public void stopLoadingEffect(Timer timer) {
         // Stop the timer and append a newline character when the cloning is done
         timer.stop();
         jButton_CloneButton.setEnabled(true); // Re-enable the clone button after cloning
     }
 
-    @Override
-    public void keyTyped(KeyEvent e) {
-
+    public JTextField getjTextField_RepoUrl() {
+        return jTextField_RepoUrl;
     }
 
-    @Override
-    public void keyPressed(KeyEvent e) {
-        if (e.getKeyChar() == KeyEvent.VK_ENTER) {
-            this.actionPerformed(null);
-        }
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-
+    public JTextArea getjTextArea_StatusArea() {
+        return jTextArea_StatusArea;
     }
 }
 
