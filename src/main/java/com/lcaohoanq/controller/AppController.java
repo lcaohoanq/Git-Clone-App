@@ -7,6 +7,7 @@ import com.lcaohoanq.error.ErrorHandler;
 import com.lcaohoanq.service.GithubService;
 import com.lcaohoanq.util.AudioHandler;
 import com.lcaohoanq.view.AppView;
+import com.lcaohoanq.view.UIPrompts;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -60,8 +61,7 @@ public class AppController implements ActionListener, KeyListener {
                     cloneRepository(repoUrl, folderRepoName);
                 } catch (ErrorHandler ex) {
                     if (ex.getStatusCode() == 400) {
-                        JOptionPane.showMessageDialog(null, "Repo is already exist", "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                        UIPrompts.IS_EXIST_REPO_CLONED();
                         appView.stopLoadingEffect(timer);
                     }
                 }
@@ -69,17 +69,17 @@ public class AppController implements ActionListener, KeyListener {
         } catch (ErrorHandler ex) {
             if (ex.getStatusCode() == HttpStatusCode.NOT_FOUND.getCode()) {
                 audioHandler.playAudio(Path.AUDIO_ERROR);
-                JOptionPane.showMessageDialog(null, Notification.REPOSITORY_NOT_FOUND, "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                appView.stopLoadingEffect(timer);
+                UIPrompts.REPO_NOT_EXIST();
             } else if (ex.getStatusCode() == HttpStatusCode.INTERNAL_SERVER_ERROR.getCode()) {
                 audioHandler.playAudio(Path.AUDIO_ERROR);
-                JOptionPane.showMessageDialog(null, Notification.INTERNAL_SERVER_ERROR, "Error",
-                    JOptionPane.ERROR_MESSAGE);
+                appView.stopLoadingEffect(timer);
+                UIPrompts.INTERNAL_SERVER_ERROR();
             }
         } catch (IOException ex) {
             audioHandler.playAudio(Path.AUDIO_ERROR);
-            JOptionPane.showMessageDialog(null, Notification.UNEXPECTED_ERROR, "Error",
-                JOptionPane.ERROR_MESSAGE);
+            appView.stopLoadingEffect(timer);
+            UIPrompts.UNEXPECTED_ERROR();
         }
     }
 
@@ -93,8 +93,7 @@ public class AppController implements ActionListener, KeyListener {
                 .call();
             appView.stopLoadingEffect(timer);
             audioHandler.playAudio(Path.AUDIO_SUCCESS);
-            JOptionPane.showMessageDialog(null, Notification.REPOSITORY_CLONED_SUCCESSFULLY,
-                "Error", JOptionPane.ERROR_MESSAGE);
+            UIPrompts.CLONED_SUCCESSFULLY();
         } catch (GitAPIException ex) {
             appView.getjTextArea_StatusArea().append("Error: " + ex.getMessage() + "\n");
             audioHandler.playAudio(Path.AUDIO_ERROR);
