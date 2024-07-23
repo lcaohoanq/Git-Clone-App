@@ -45,6 +45,9 @@ public class GithubService {
     private String convertToApiUrl(String repoUrl) {
         // Extract the path from the URL and construct the API URL
         String path = repoUrl.replace("https://github.com/", "");
+        if(path.contains(".git")){
+            path = path.replace(".git", "");
+        }
         return "https://api.github.com/repos/" + path;
     }
 }

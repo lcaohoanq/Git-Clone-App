@@ -42,6 +42,9 @@ public class AppController implements ActionListener, KeyListener {
         // check is public or private repo
         try {
             boolean isPublic = githubService.isPublicRepository(repoUrl);
+
+            System.out.println("Url = " + repoUrl);
+
             selectedDirectory = appView.selectDirectory();
             if (selectedDirectory == null) {
                 System.out.println("You cancel the directory selection");
@@ -53,40 +56,52 @@ public class AppController implements ActionListener, KeyListener {
             timer = appView.startLoadingEffect();
 
             new Thread(() -> {
-                cloneRepository(repoUrl, folderRepoName);
+                try {
+                    cloneRepository(repoUrl, folderRepoName);
+                } catch (ErrorHandler ex) {
+                    if (ex.getStatusCode() == 400) {
+                        JOptionPane.showMessageDialog(null, "Repo is already exist", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                        appView.stopLoadingEffect(timer);
+                    }
+                }
             }).start();
         } catch (ErrorHandler ex) {
-            if(ex.getStatusCode() == HttpStatusCode.NOT_FOUND.getCode()){
+            if (ex.getStatusCode() == HttpStatusCode.NOT_FOUND.getCode()) {
                 audioHandler.playAudio(Path.AUDIO_ERROR);
-                JOptionPane.showMessageDialog(null, Notification.REPOSITORY_NOT_FOUND);
-            }else if(ex.getStatusCode() == HttpStatusCode.INTERNAL_SERVER_ERROR.getCode()){
+                JOptionPane.showMessageDialog(null, Notification.REPOSITORY_NOT_FOUND, "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            } else if (ex.getStatusCode() == HttpStatusCode.INTERNAL_SERVER_ERROR.getCode()) {
                 audioHandler.playAudio(Path.AUDIO_ERROR);
-                JOptionPane.showMessageDialog(null, Notification.INTERNAL_SERVER_ERROR);
+                JOptionPane.showMessageDialog(null, Notification.INTERNAL_SERVER_ERROR, "Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException ex) {
             audioHandler.playAudio(Path.AUDIO_ERROR);
-            JOptionPane.showMessageDialog(null, Notification.UNEXPECTED_ERROR);
+            JOptionPane.showMessageDialog(null, Notification.UNEXPECTED_ERROR, "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
-
     }
 
-    private void cloneRepository(String repoUrl, String folderRepoName) {
+    private void cloneRepository(String repoUrl, String folderRepoName) throws ErrorHandler {
         try {
-            // Create a unique directory for each cloned repository
             File repoDir = new File(selectedDirectory, folderRepoName);
+            // Create a unique directory for each cloned repository
             Git.cloneRepository()
                 .setURI(repoUrl)
                 .setDirectory(repoDir)
                 .call();
             appView.stopLoadingEffect(timer);
             audioHandler.playAudio(Path.AUDIO_SUCCESS);
-            JOptionPane.showMessageDialog(null, Notification.REPOSITORY_CLONED_SUCCESSFULLY);
+            JOptionPane.showMessageDialog(null, Notification.REPOSITORY_CLONED_SUCCESSFULLY,
+                "Error", JOptionPane.ERROR_MESSAGE);
         } catch (GitAPIException ex) {
             appView.getjTextArea_StatusArea().append("Error: " + ex.getMessage() + "\n");
             audioHandler.playAudio(Path.AUDIO_ERROR);
         } catch (Exception ex) {
             appView.getjTextArea_StatusArea().append("Unexpected error: " + ex.getMessage() + "\n");
             audioHandler.playAudio(Path.AUDIO_ERROR);
+            throw new ErrorHandler("Repo is already exist", 400);
         }
     }
 
