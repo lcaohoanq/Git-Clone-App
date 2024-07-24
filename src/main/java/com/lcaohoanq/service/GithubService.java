@@ -2,6 +2,7 @@ package com.lcaohoanq.service;
 
 import com.lcaohoanq.constant.HttpStatusCode;
 import com.lcaohoanq.error.ErrorHandler;
+import com.lcaohoanq.util.GithubUtils;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.io.IOException;
 import org.apache.http.HttpResponse;
@@ -16,7 +17,7 @@ public class GithubService {
     private final String GITHUB_TOKEN = Dotenv.configure().load().get("GITHUB_TOKEN");
 
     public boolean isPublicRepository(String repoUrl) throws ErrorHandler, IOException {
-        String apiUrl = convertToApiUrl(repoUrl);
+        String apiUrl = GithubUtils.convertToApiUrl(repoUrl);
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet request = new HttpGet(apiUrl);
         request.addHeader("Authorization", "token " + GITHUB_TOKEN);
@@ -42,12 +43,9 @@ public class GithubService {
         }
     }
 
-    private String convertToApiUrl(String repoUrl) {
-        // Extract the path from the URL and construct the API URL
-        String path = repoUrl.replace("https://github.com/", "");
-        if(path.contains(".git")){
-            path = path.replace(".git", "");
-        }
-        return "https://api.github.com/repos/" + path;
+
+
+    public static void main(String[] args) {
+        System.out.println();
     }
 }
